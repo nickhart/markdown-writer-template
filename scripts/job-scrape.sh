@@ -134,6 +134,8 @@ scrape_job_posting() {
         log_info "Converting to PDF using pandoc..."
         if pandoc "$temp_html" -o "$output_file" 2>/dev/null; then
             conversion_success=true
+        else
+            log_warning "PDF conversion failed (SVG images or missing LaTeX)"
         fi
     fi
     

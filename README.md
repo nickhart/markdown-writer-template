@@ -254,6 +254,7 @@ Sincerely,
 ### Required
 - **pandoc** - Document conversion engine
 - **yq** - YAML processing (for configuration)
+- **librsvg** - SVG image conversion support (for PDF generation)
 
 ### Optional (for enhanced features)
 - **curl** - Job posting downloads
@@ -264,14 +265,14 @@ The setup script automatically installs dependencies:
 
 ```bash
 # macOS (via Homebrew)
-brew install pandoc yq
+brew install pandoc yq librsvg
 
 # Ubuntu/Debian
-sudo apt install pandoc
+sudo apt install pandoc librsvg2-bin
 sudo snap install yq
 
 # Arch Linux
-sudo pacman -S pandoc
+sudo pacman -S pandoc librsvg
 yay -S yq
 ```
 
@@ -382,6 +383,15 @@ A: Yes! Pandoc supports many formats. Update the configuration and format script
 
 **Q: How do I backup my applications?**  
 A: The entire `applications/` directory can be backed up. Consider using git for version control.
+
+**Q: I'm getting "rsvg-convert not found" errors when downloading job postings**  
+A: Install librsvg for SVG support: `brew install librsvg` (macOS) or `sudo apt install librsvg2-bin` (Linux).
+
+**Q: PDF conversion fails with "pdflatex not found"**  
+A: This is normal for web pages with complex formatting. The system automatically falls back to HTML format.
+
+**Q: Job posting downloads are saved as HTML instead of PDF**  
+A: This happens when the web page contains SVG images or complex formatting that pandoc can't convert. HTML format preserves all content.
 
 ## 🆘 Support
 

@@ -8,7 +8,7 @@ default_format: docx
 pandoc_options:
   docx: "--reference-doc=templates/reference.docx"
   html: "--no-highlight --wrap=none -t html"
-  pdf: "--pdf-engine=xelatex"
+  pdf: ""
 
 # Shell integration
 shell_aliases: true

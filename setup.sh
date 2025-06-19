@@ -75,23 +75,24 @@ install_pandoc() {
     
     case "$pkg_manager" in
         brew)
-            brew install pandoc
+            brew install pandoc librsvg
             ;;
         apt)
-            sudo apt-get update && sudo apt-get install -y pandoc
+            sudo apt-get update && sudo apt-get install -y pandoc librsvg2-bin
             ;;
         yum)
-            sudo yum install -y pandoc
+            sudo yum install -y pandoc librsvg2-tools
             ;;
         dnf)
-            sudo dnf install -y pandoc
+            sudo dnf install -y pandoc librsvg2-tools
             ;;
         pacman)
-            sudo pacman -S --noconfirm pandoc
+            sudo pacman -S --noconfirm pandoc librsvg
             ;;
         *)
             log_error "Cannot install pandoc automatically on this system"
             log_info "Please install pandoc manually from: https://pandoc.org/installing.html"
+            log_info "Also install librsvg for SVG support"
             return 1
             ;;
     esac

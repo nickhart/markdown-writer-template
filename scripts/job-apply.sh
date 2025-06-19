@@ -137,17 +137,22 @@ download_job_posting() {
         if curl -s -L "$url" -o "$temp_html"; then
             # Convert HTML to PDF using pandoc
             if command_exists pandoc; then
-                pandoc "$temp_html" -o "$output_file"
+                if pandoc "$temp_html" -o "$output_file" 2>/dev/null; then
+                    log_success "Job posting downloaded as PDF: $output_file"
+                    rm -f "$temp_html"
+                    return 0
+                else
+                    log_warning "PDF conversion failed, saving as HTML instead"
+                    cp "$temp_html" "${output_file%.pdf}.html"
+                    log_success "Job posting saved as HTML: ${output_file%.pdf}.html"
+                    rm -f "$temp_html"
+                    return 0
+                fi
             else
                 log_warning "pandoc not available for PDF conversion"
                 cp "$temp_html" "${output_file%.pdf}.html"
-                log_info "Saved as HTML instead: ${output_file%.pdf}.html"
-            fi
-            
-            rm -f "$temp_html"
-            
-            if [[ -f "$output_file" ]] || [[ -f "${output_file%.pdf}.html" ]]; then
-                log_success "Job posting downloaded successfully"
+                log_success "Job posting saved as HTML: ${output_file%.pdf}.html"
+                rm -f "$temp_html"
                 return 0
             fi
         fi
