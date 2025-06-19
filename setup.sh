@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$SCRIPT_DIR"
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1" >&2
@@ -226,7 +226,7 @@ setup_git_hooks() {
     
     log_info "Setting up git pre-commit hook..."
     
-    cp "$PROJECT_ROOT/scripts/pre-commit" "$pre_commit_hook"
+    cp "scripts/pre-commit" "$pre_commit_hook"
     chmod +x "$pre_commit_hook"
     
     log_success "Git pre-commit hook installed"
@@ -237,16 +237,16 @@ create_configs() {
     log_info "Creating initial configuration files..."
     
     # Global config
-    if [[ ! -f "$PROJECT_ROOT/.writer-config.yml" ]]; then
-        cp "$PROJECT_ROOT/config/.writer-config.yml" "$PROJECT_ROOT/.writer-config.yml"
+    if [[ ! -f ".writer-config.yml" ]]; then
+        cp "config/.writer-config.yml" ".writer-config.yml"
         log_success "Global configuration created"
     fi
     
     # Directory-specific configs
     local dirs=("blog" "resumes" "cover_letters" "interviews")
     for dir in "${dirs[@]}"; do
-        if [[ ! -f "$PROJECT_ROOT/$dir/.writer-config.yml" ]]; then
-            cp "$PROJECT_ROOT/templates/.writer-config.yml" "$PROJECT_ROOT/$dir/.writer-config.yml"
+        if [[ ! -f "$dir/.writer-config.yml" ]]; then
+            cp "templates/.writer-config.yml" "$dir/.writer-config.yml"
         fi
     done
 }
