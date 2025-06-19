@@ -4,11 +4,8 @@
 # Output format for this directory
 format: docx
 
-# Reference document (relative to this config file's location)
-reference_doc: reference.docx
-
 # Custom pandoc options for this directory
-pandoc_options: "--reference-doc=reference.docx"
+pandoc_options: ""
 
 # Enable/disable auto-formatting for this directory
 auto_format: true

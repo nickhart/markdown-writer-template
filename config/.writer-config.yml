@@ -6,7 +6,7 @@ default_format: docx
 
 # Pandoc options for each output format
 pandoc_options:
-  docx: "--reference-doc=reference.docx"
+  docx: ""
   html: "--no-highlight --wrap=none -t html"
   pdf: ""
 

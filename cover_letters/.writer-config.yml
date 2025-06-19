@@ -1,5 +1,4 @@
 # Cover Letter configuration - DOCX output
 format: docx
-reference_doc: reference.docx
-pandoc_options: "--reference-doc=reference.docx"
+pandoc_options: ""
 auto_format: true

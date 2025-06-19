@@ -294,8 +294,7 @@ create_application() {
     cat > "$config_file" << EOF
 # Application-specific configuration
 format: docx
-reference_doc: ../../templates/reference.docx
-pandoc_options: "--reference-doc=../../templates/reference.docx"
+pandoc_options: ""
 auto_format: true
 EOF
     
