@@ -135,13 +135,11 @@ download_job_posting() {
         local temp_html="/tmp/job_posting_$$.html"
         
         if curl -s -L "$url" -o "$temp_html"; then
-            # Convert HTML to PDF using pandoc or wkhtmltopdf
-            if command_exists wkhtmltopdf; then
-                wkhtmltopdf "$temp_html" "$output_file" 2>/dev/null
-            elif command_exists pandoc; then
+            # Convert HTML to PDF using pandoc
+            if command_exists pandoc; then
                 pandoc "$temp_html" -o "$output_file"
             else
-                log_warning "Neither wkhtmltopdf nor pandoc available for PDF conversion"
+                log_warning "pandoc not available for PDF conversion"
                 cp "$temp_html" "${output_file%.pdf}.html"
                 log_info "Saved as HTML instead: ${output_file%.pdf}.html"
             fi

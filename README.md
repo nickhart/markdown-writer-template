@@ -256,7 +256,6 @@ Sincerely,
 - **yq** - YAML processing (for configuration)
 
 ### Optional (for enhanced features)
-- **wkhtmltopdf** - Better PDF conversion for job postings
 - **curl** - Job posting downloads
 - **git** - Version control and hooks
 
@@ -265,14 +264,14 @@ The setup script automatically installs dependencies:
 
 ```bash
 # macOS (via Homebrew)
-brew install pandoc yq wkhtmltopdf
+brew install pandoc yq
 
 # Ubuntu/Debian
-sudo apt install pandoc wkhtmltopdf
+sudo apt install pandoc
 sudo snap install yq
 
 # Arch Linux
-sudo pacman -S pandoc wkhtmltopdf
+sudo pacman -S pandoc
 yay -S yq
 ```
 

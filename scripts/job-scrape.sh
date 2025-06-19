@@ -127,26 +127,10 @@ scrape_job_posting() {
         return 1
     fi
     
-    # Convert to PDF using available tools
+    # Convert to PDF using pandoc
     local conversion_success=false
     
-    # Try wkhtmltopdf first (best results)
-    if command_exists wkhtmltopdf; then
-        log_info "Converting to PDF using wkhtmltopdf..."
-        if wkhtmltopdf \
-            --page-size A4 \
-            --margin-top 0.75in \
-            --margin-right 0.75in \
-            --margin-bottom 0.75in \
-            --margin-left 0.75in \
-            --disable-smart-shrinking \
-            "$temp_html" "$output_file" 2>/dev/null; then
-            conversion_success=true
-        fi
-    fi
-    
-    # Try pandoc as fallback
-    if [[ "$conversion_success" == false ]] && command_exists pandoc; then
+    if command_exists pandoc; then
         log_info "Converting to PDF using pandoc..."
         if pandoc "$temp_html" -o "$output_file" 2>/dev/null; then
             conversion_success=true
@@ -324,9 +308,8 @@ Features:
     - Saves to job_postings/formatted/ directory
 
 Supported Conversion Tools:
-    1. wkhtmltopdf (best results) - install with: brew install wkhtmltopdf
-    2. pandoc (fallback) - install with: brew install pandoc
-    3. HTML + text fallback if PDF conversion fails
+    1. pandoc (recommended) - install with: brew install pandoc
+    2. HTML + text fallback if PDF conversion fails
 
 Output Files:
     company_role_date.pdf     # Main PDF file

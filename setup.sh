@@ -164,38 +164,6 @@ install_yq() {
     fi
 }
 
-# Install wkhtmltopdf (optional)
-install_wkhtmltopdf() {
-    local pkg_manager="$1"
-    
-    if command_exists wkhtmltopdf; then
-        log_success "wkhtmltopdf is already installed"
-        return 0
-    fi
-    
-    log_info "Installing wkhtmltopdf (optional, for better PDF conversion)..."
-    
-    case "$pkg_manager" in
-        brew)
-            brew install --cask wkhtmltopdf || log_warning "wkhtmltopdf installation failed (optional)"
-            ;;
-        apt)
-            sudo apt-get install -y wkhtmltopdf || log_warning "wkhtmltopdf installation failed (optional)"
-            ;;
-        yum)
-            sudo yum install -y wkhtmltopdf || log_warning "wkhtmltopdf installation failed (optional)"
-            ;;
-        dnf)
-            sudo dnf install -y wkhtmltopdf || log_warning "wkhtmltopdf installation failed (optional)"
-            ;;
-        pacman)
-            sudo pacman -S --noconfirm wkhtmltopdf || log_warning "wkhtmltopdf installation failed (optional)"
-            ;;
-        *)
-            log_warning "Cannot install wkhtmltopdf automatically on this system"
-            ;;
-    esac
-}
 
 # Setup shell aliases
 setup_shell_aliases() {
@@ -286,7 +254,7 @@ create_configs() {
 # Make scripts executable
 make_scripts_executable() {
     log_info "Making scripts executable..."
-    chmod +x "$PROJECT_ROOT"/scripts/*.sh
+    chmod +x scripts/*.sh
     log_success "Scripts are now executable"
 }
 
@@ -387,7 +355,6 @@ main() {
             exit 1
         }
         
-        install_wkhtmltopdf "$pkg_manager"
         echo
     fi
     
