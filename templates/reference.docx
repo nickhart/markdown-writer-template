@@ -1,0 +1,18 @@
+This is a placeholder for a DOCX reference template. In a real implementation, this would be a properly formatted Microsoft Word document that serves as a template for pandoc's DOCX output. The reference document should include:
+
+1. Proper heading styles (Heading 1, Heading 2, etc.)
+2. Font settings (recommended: Arial or Calibri, 11pt)
+3. Margin settings (1 inch on all sides)
+4. Line spacing preferences
+5. Color scheme for headings
+6. Table formatting
+7. Bullet point styles
+
+To create a proper reference.docx file:
+1. Create a new Word document
+2. Format it with your preferred styles
+3. Add sample headings, text, tables, and lists
+4. Save as reference.docx
+5. Place in templates/ directory
+
+This file will be used by pandoc to style all DOCX outputs according to your formatting preferences.

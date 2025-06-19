@@ -1,0 +1,14 @@
+# Directory-specific configuration template
+# Copy this file to any directory to override global settings
+
+# Output format for this directory
+format: docx
+
+# Reference document (relative to this config file's location)
+reference_doc: reference.docx
+
+# Custom pandoc options for this directory
+pandoc_options: "--reference-doc=reference.docx"
+
+# Enable/disable auto-formatting for this directory
+auto_format: true

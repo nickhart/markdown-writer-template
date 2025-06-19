@@ -1,0 +1,27 @@
+# Global Markdown Writer Configuration
+# This is the default configuration template
+
+# Default output format for markdown files
+default_format: docx
+
+# Pandoc options for each output format
+pandoc_options:
+  docx: "--reference-doc=reference.docx"
+  html: "--no-highlight --wrap=none -t html"
+  pdf: "--pdf-engine=xelatex"
+
+# Shell integration
+shell_aliases: true
+
+# Auto-format on git commit
+auto_format: true
+
+# Job application tracking
+job_log_path: "job_applications.md"
+
+# Template settings
+templates:
+  resume_default: "templates/resumes/general.md"
+  cover_letter_default: "templates/default_cover_letter.md"
+  
+# Directory-specific overrides can be set in each directory's .writer-config.yml

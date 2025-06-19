@@ -1,0 +1,4 @@
+# Blog configuration - HTML output
+format: html
+pandoc_options: "--no-highlight --wrap=none -t html"
+auto_format: true

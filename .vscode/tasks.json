@@ -1,0 +1,130 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Format Current File",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/format.sh",
+      "args": ["${file}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format All Markdown",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/format.sh",
+      "args": ["--all"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format to DOCX",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/format.sh",
+      "args": ["${file}", "--format", "docx"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format to PDF",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/format.sh",
+      "args": ["${file}", "--format", "pdf"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format to HTML",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/format.sh",
+      "args": ["${file}", "--format", "html"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "New Job Application",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/job-apply.sh",
+      "args": ["--interactive"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Job Application Status",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/job-log.sh",
+      "args": ["status"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "List Resume Templates",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/job-apply.sh",
+      "args": ["--list-templates"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Setup",
+      "type": "shell",
+      "command": "${workspaceFolder}/setup.sh",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+# Markdown Writer Template - .gitignore
+
+# Formatted output directories - these contain generated files
+**/formatted/
+blog/formatted/
+resumes/formatted/
+cover_letters/formatted/
+interviews/formatted/
+job_postings/formatted/
+applications/*/formatted/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# Backup files created by scripts
+*.bak
+*.backup
+
+# Log files
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/settings.json.bak
+*.swp
+*.swo
+*~
+
+# Node.js (if using any JS tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using any Python tooling)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Application-specific
+# Uncomment the next line if you want to ignore all applications
+# applications/
+
+# Keep example applications but ignore real ones
+# You can customize this based on your preferences
+applications/active/example_*
+applications/submitted/example_*
+applications/interviews/example_*
+applications/offers/example_*
+applications/rejected/example_*
+applications/archive/example_*
+
+# Personal configuration overrides
+.env
+.env.local
+config.local.yml
+
+# Build artifacts
+dist/
+build/
+
+# Dependency lock files (if using package managers)
+package-lock.json
+yarn.lock
+Pipfile.lock
+
+# IDE files
+.idea/
+*.iml
+.project
+.classpath
+
+# Pandoc temporary files
+pandoc-*
+
+# Shell history and RC backups
+*_history
+*.rc.bak
+
+# Job application exports (uncomment if you don't want to track these)
+# *.csv
+# *_report.md
+# *_export.*

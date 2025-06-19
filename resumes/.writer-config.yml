@@ -1,0 +1,5 @@
+# Resume configuration - DOCX output
+format: docx
+reference_doc: reference.docx
+pandoc_options: "--reference-doc=reference.docx"
+auto_format: true

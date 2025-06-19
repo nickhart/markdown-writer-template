@@ -1,0 +1,105 @@
+name: Setup Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-setup:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Make setup script executable
+      run: chmod +x setup.sh
+    
+    - name: Test setup script (dry run)
+      run: ./setup.sh --skip-deps --skip-aliases --skip-git
+    
+    - name: Check script permissions
+      run: |
+        ls -la scripts/
+        test -x scripts/format.sh
+        test -x scripts/job-apply.sh
+        test -x scripts/job-scrape.sh
+        test -x scripts/job-log.sh
+        test -x scripts/pre-commit
+    
+    - name: Validate configuration files
+      run: |
+        test -f config/.writer-config.yml
+        test -f templates/.writer-config.yml
+        test -f blog/.writer-config.yml
+        test -f resumes/.writer-config.yml
+        test -f cover_letters/.writer-config.yml
+        test -f interviews/.writer-config.yml
+    
+    - name: Check directory structure
+      run: |
+        test -d scripts
+        test -d templates/resumes
+        test -d applications/active
+        test -d applications/submitted
+        test -d applications/interviews
+        test -d applications/offers
+        test -d applications/rejected
+        test -d applications/archive
+        test -d blog/formatted
+        test -d resumes/formatted
+        test -d cover_letters/formatted
+        test -d job_postings/formatted
+    
+    - name: Test script help commands
+      run: |
+        ./scripts/format.sh --help
+        ./scripts/job-apply.sh --help
+        ./scripts/job-scrape.sh --help
+        ./scripts/job-log.sh --help
+    
+    - name: Validate template files
+      run: |
+        test -f templates/default_cover_letter.md
+        test -f templates/resumes/general.md
+        test -f templates/resumes/mobile.md
+        test -f templates/resumes/frontend.md
+        test -f templates/resumes/backend.md
+        test -f templates/reference.docx
+    
+    - name: Check example files
+      run: |
+        test -f blog/sample_blog_post.md
+        test -f interviews/company_templates/technical_interview_prep.md
+
+  test-with-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc wkhtmltopdf
+        sudo snap install yq
+    
+    - name: Test format script with pandoc
+      run: |
+        chmod +x scripts/format.sh
+        echo "# Test Document" > test.md
+        echo "This is a test." >> test.md
+        ./scripts/format.sh test.md --format html
+        test -f formatted/test.html
+    
+    - name: Test job application workflow
+      run: |
+        chmod +x scripts/job-apply.sh
+        # Test list templates
+        ./scripts/job-apply.sh --list-templates

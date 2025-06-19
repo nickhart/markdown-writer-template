@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-json",
+    "streetsidesoftware.code-spell-checker",
+    "bierner.markdown-mermaid",
+    "shd101wyy.markdown-preview-enhanced",
+    "ms-vscode.wordcount"
+  ],
+  "unwantedRecommendations": []
+}

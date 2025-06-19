@@ -1,0 +1,67 @@
+{
+  "markdown.preview.breaks": true,
+  "markdown.preview.linkify": true,
+  "markdown.preview.typographer": true,
+  "markdown.preview.fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif",
+  "markdown.preview.fontSize": 14,
+  "markdown.preview.lineHeight": 1.6,
+  
+  "files.associations": {
+    "*.md": "markdown",
+    ".writer-config.yml": "yaml",
+    ".application.yml": "yaml"
+  },
+  
+  "files.exclude": {
+    "**/formatted": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/*.tmp": true,
+    "**/*.bak": true
+  },
+  
+  "search.exclude": {
+    "**/formatted": true,
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/.DS_Store": true
+  },
+  
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wordWrapColumn": 80,
+  
+  "[markdown]": {
+    "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 80,
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+  
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced"
+  },
+  
+  "yaml.schemas": {
+    "file:///writer-config-schema.json": [
+      ".writer-config.yml",
+      "*/.writer-config.yml"
+    ]
+  },
+  
+  "terminal.integrated.env.osx": {
+    "PATH": "${workspaceFolder}/scripts:${env:PATH}"
+  },
+  
+  "terminal.integrated.env.linux": {
+    "PATH": "${workspaceFolder}/scripts:${env:PATH}"
+  },
+  
+  "tasks.version": "2.0.0"
+}

@@ -1,0 +1,4 @@
+# Interview configuration - PDF output
+format: pdf
+pandoc_options: "--pdf-engine=xelatex"
+auto_format: true
