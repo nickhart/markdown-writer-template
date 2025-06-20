@@ -1,0 +1,5 @@
+pandoc_options:
+  docx: ""
+  html: "--no-highlight --wrap=none"
+  pdf: "--pdf-engine=xelatex"
+default_format: docx

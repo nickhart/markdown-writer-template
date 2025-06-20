@@ -36,7 +36,7 @@ command_exists() {
 
 # Sanitize string for filename
 sanitize_filename() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/_\+/_/g' | sed 's/^_\|_$//g'
+    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_\|_$//g'
 }
 
 # Extract domain from URL
@@ -93,7 +93,13 @@ scrape_job_posting() {
         local date_str
         date_str=$(date +%Y%m%d)
         
-        output_file="$PROJECT_ROOT/job_postings/formatted/${company_clean}${role_clean}_${date_str}.pdf"
+        # Use relative path if directory exists, otherwise absolute
+        if [[ -d "job_postings/formatted" ]]; then
+            output_file="job_postings/formatted/${company_clean}${role_clean}_${date_str}.pdf"
+        else
+            mkdir -p "$PROJECT_ROOT/job_postings/formatted"
+            output_file="$PROJECT_ROOT/job_postings/formatted/${company_clean}${role_clean}_${date_str}.pdf"
+        fi
     fi
     
     # Ensure output directory exists
@@ -234,7 +240,12 @@ EOF
 
 # List scraped job postings
 list_job_postings() {
-    local postings_dir="$PROJECT_ROOT/job_postings/formatted"
+    # Use relative path if it exists, otherwise absolute
+    if [[ -d "job_postings/formatted" ]]; then
+        local postings_dir="job_postings/formatted"
+    else
+        local postings_dir="$PROJECT_ROOT/job_postings/formatted"
+    fi
     
     if [[ ! -d "$postings_dir" ]]; then
         log_info "No job postings directory found"

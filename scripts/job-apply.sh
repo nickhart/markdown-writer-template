@@ -36,7 +36,7 @@ command_exists() {
 
 # Sanitize string for directory name
 sanitize_dirname() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/_\+/_/g' | sed 's/^_\|_$//g'
+    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_\|_$//g'
 }
 
 # Get current date in various formats
@@ -85,7 +85,7 @@ prompt_input() {
 
 # List available resume templates
 list_resume_templates() {
-    local templates_dir="$PROJECT_ROOT/templates/resumes"
+    local templates_dir="templates/resumes"
     if [[ -d "$templates_dir" ]]; then
         echo "Available resume templates:"
         for template in "$templates_dir"/*.md; do
@@ -229,17 +229,22 @@ create_application() {
     
     # Create directory name
     local dir_name="${company_clean}_${role_clean}_$(get_date 'month_year' | tr '[:upper:]' '[:lower:]' | tr ' ' '_')_${date_short}"
-    local app_dir="$PROJECT_ROOT/applications/active/$dir_name"
+    local app_dir="applications/active/$dir_name"
     
     log_info "Creating application package: $dir_name"
     
     # Create application directory
     if [[ -d "$app_dir" ]]; then
         log_warning "Application directory already exists: $app_dir"
-        read -p "Continue anyway? (y/N): " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            log_info "Cancelled"
-            return 1
+        # In non-interactive mode (testing), auto-continue
+        if [[ ! -t 0 ]]; then
+            log_info "Non-interactive mode: continuing anyway"
+        else
+            read -p "Continue anyway? (y/N): " confirm
+            if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+                log_info "Cancelled"
+                return 1
+            fi
         fi
     else
         mkdir -p "$app_dir"
@@ -255,7 +260,7 @@ create_application() {
     date_iso=$(get_date "iso")
     
     # Copy resume template
-    local resume_template="$PROJECT_ROOT/templates/resumes/$template.md"
+    local resume_template="templates/resumes/$template.md"
     local resume_file="$app_dir/resume.md"
     
     if [[ ! -f "$resume_template" ]]; then
@@ -269,7 +274,7 @@ create_application() {
     log_success "Created resume: $resume_file"
     
     # Copy cover letter template
-    local cover_template="$PROJECT_ROOT/templates/default_cover_letter.md"
+    local cover_template="templates/default_cover_letter.md"
     local cover_file="$app_dir/cover_letter.md"
     
     if [[ -f "$cover_template" ]]; then
@@ -300,13 +305,19 @@ EOF
     
     # Format the markdown files
     log_info "Formatting documents..."
-    if [[ -x "$PROJECT_ROOT/scripts/format.sh" ]]; then
+    # Try relative path first, then absolute
+    local format_script="scripts/format.sh"
+    if [[ ! -x "$format_script" ]]; then
+        format_script="$PROJECT_ROOT/scripts/format.sh"
+    fi
+    
+    if [[ -x "$format_script" ]]; then
         cd "$app_dir"
-        "$PROJECT_ROOT/scripts/format.sh" "resume.md" || log_warning "Failed to format resume"
-        "$PROJECT_ROOT/scripts/format.sh" "cover_letter.md" || log_warning "Failed to format cover letter"
+        "$format_script" "resume.md" || log_warning "Failed to format resume"
+        "$format_script" "cover_letter.md" || log_warning "Failed to format cover letter"
         
         # Also create PDF versions
-        "$PROJECT_ROOT/scripts/format.sh" "resume.md" --format pdf || log_warning "Failed to create PDF resume"
+        "$format_script" "resume.md" --format pdf || log_warning "Failed to create PDF resume"
         cd - > /dev/null
     else
         log_warning "Format script not found or not executable"

@@ -103,3 +103,29 @@ jobs:
         chmod +x scripts/job-apply.sh
         # Test list templates
         ./scripts/job-apply.sh --list-templates
+
+  run-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc librsvg2-bin
+        sudo snap install yq
+    
+    - name: Run test suite
+      run: |
+        chmod +x test.sh
+        ./test.sh
+    
+    - name: Run unit tests only
+      run: ./test.sh --unit
+    
+    - name: Test specific components
+      run: |
+        ./test.sh format
+        ./test.sh job_apply

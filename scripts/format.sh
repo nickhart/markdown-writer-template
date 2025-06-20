@@ -72,7 +72,16 @@ get_config() {
     fi
     
     local value
-    value=$(yq eval ".$key" "$config_file" 2>/dev/null | tr -d '\n' | tr -d '"' | xargs || echo "null")
+    if ! value=$(yq eval ".$key" "$config_file" 2>/dev/null); then
+        echo "$default"
+        return
+    fi
+    
+    # Handle yq null output and empty strings
+    value=$(echo "$value" | tr -d '\n' | tr -d '"')
+    
+    # Remove leading/trailing whitespace
+    value=$(echo "$value" | xargs 2>/dev/null || echo "$value")
     
     if [[ "$value" == "null" || -z "$value" ]]; then
         echo "$default"

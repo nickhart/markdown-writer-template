@@ -12,7 +12,12 @@ NC='\033[0m' # No Color
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-APPLICATIONS_DIR="$PROJECT_ROOT/applications"
+# Use relative path if it exists, otherwise fall back to absolute
+if [[ -d "applications" ]]; then
+    APPLICATIONS_DIR="applications"
+else
+    APPLICATIONS_DIR="$PROJECT_ROOT/applications"
+fi
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1" >&2
