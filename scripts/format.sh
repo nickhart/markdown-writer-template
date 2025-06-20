@@ -72,7 +72,7 @@ get_config() {
     fi
     
     local value
-    value=$(yq eval ".$key" "$config_file" 2>/dev/null || echo "null")
+    value=$(yq eval ".$key" "$config_file" 2>/dev/null | tr -d '\n' | tr -d '"' | xargs || echo "null")
     
     if [[ "$value" == "null" || -z "$value" ]]; then
         echo "$default"
@@ -86,13 +86,24 @@ get_pandoc_options() {
     local config_file="$1"
     local format="$2"
     
-    # Try format-specific options first
+    # Try format-specific options first (pandoc_options.format)
     local options
-    options=$(get_config "$config_file" "pandoc_options" "")
+    options=$(get_config "$config_file" "pandoc_options.$format" "")
     
+    # If that's empty or null, and we didn't find format-specific options,
+    # check if pandoc_options is a string (not an object)
     if [[ "$options" == "" ]] || [[ "$options" == "null" ]]; then
-        # Try global pandoc_options.<format>
-        options=$(get_config "$config_file" "pandoc_options.$format" "")
+        local pandoc_opts_type
+        pandoc_opts_type=$(yq eval '.pandoc_options | type' "$config_file" 2>/dev/null || echo "null")
+        
+        if [[ "$pandoc_opts_type" == "string" ]]; then
+            options=$(get_config "$config_file" "pandoc_options" "")
+        fi
+    fi
+    
+    # Ensure we never return "null" - always return empty string if nothing found
+    if [[ "$options" == "null" ]]; then
+        options=""
     fi
     
     echo "$options"
