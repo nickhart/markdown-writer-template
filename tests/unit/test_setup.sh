@@ -104,10 +104,19 @@ setup_setup_mocks
     
     source "$PROJECT_ROOT/setup.sh"
     
-    # Override command_exists function to simulate pandoc not installed
+    # Override command_exists function to simulate pandoc not initially installed
+    # but available after the first call (simulating successful installation)
+    pandoc_check_count=0
     command_exists() {
         case "$1" in
-            pandoc) return 1 ;;  # Simulate pandoc not found
+            pandoc) 
+                ((pandoc_check_count++))
+                if [[ $pandoc_check_count -eq 1 ]]; then
+                    return 1  # First check: not found
+                else
+                    return 0  # Subsequent checks: found (after "installation")
+                fi
+                ;;
             *) command -v "$1" >/dev/null 2>&1 ;;
         esac
     }
@@ -133,10 +142,19 @@ setup_setup_mocks
     
     source "$PROJECT_ROOT/setup.sh"
     
-    # Override command_exists function to simulate yq not installed
+    # Override command_exists function to simulate yq not initially installed
+    # but available after the first call (simulating successful installation)
+    yq_check_count=0
     command_exists() {
         case "$1" in
-            yq) return 1 ;;  # Simulate yq not found
+            yq) 
+                ((yq_check_count++))
+                if [[ $yq_check_count -eq 1 ]]; then
+                    return 1  # First check: not found
+                else
+                    return 0  # Subsequent checks: found (after "installation")
+                fi
+                ;;
             *) command -v "$1" >/dev/null 2>&1 ;;
         esac
     }
@@ -153,54 +171,7 @@ setup_setup_mocks
 cleanup_temp_dir "$temp_dir"
 cleanup_setup_mocks
 
-# Test 5: wkhtmltopdf installation function (NEW)
-test_start "wkhtmltopdf installation function"
-temp_dir=$(setup_temp_dir)
-setup_setup_mocks
-(
-    cd "$temp_dir"
-    
-    source "$PROJECT_ROOT/setup.sh"
-    
-    # Override command_exists function to control wkhtmltopdf detection
-    command_exists() {
-        case "$1" in
-            wkhtmltopdf) return 1 ;;  # Simulate wkhtmltopdf not found initially
-            *) command -v "$1" >/dev/null 2>&1 ;;
-        esac
-    }
-    
-    # Test with brew (macOS)
-    output=$(install_wkhtmltopdf "macos" "brew" 2>&1)
-    
-    if [[ "$output" == *"Installing wkhtmltopdf"* ]] && [[ "$output" == *"Brew executed"* ]]; then
-        test_pass "wkhtmltopdf installation works with brew"
-    else
-        test_fail "wkhtmltopdf installation failed. Output: $output"
-    fi
-    
-    # Test with apt (Linux)
-    output=$(install_wkhtmltopdf "linux" "apt" 2>&1)
-    
-    if [[ "$output" == *"Installing wkhtmltopdf"* ]] && [[ "$output" == *"apt-get executed"* ]]; then
-        test_pass "wkhtmltopdf installation works with apt"
-    else
-        test_fail "wkhtmltopdf apt installation failed. Output: $output"
-    fi
-    
-    # Test with unknown package manager (should not fail)
-    output=$(install_wkhtmltopdf "unknown" "unknown" 2>&1)
-    
-    if [[ "$output" == *"Cannot install wkhtmltopdf automatically"* ]] && [[ "$output" == *"optional"* ]]; then
-        test_pass "wkhtmltopdf handles unknown package manager gracefully"
-    else
-        test_fail "wkhtmltopdf unknown package manager handling failed. Output: $output"
-    fi
-)
-cleanup_temp_dir "$temp_dir"
-cleanup_setup_mocks
-
-# Test 6: Shell alias setup
+# Test 5: Shell alias setup
 test_start "Shell alias setup"
 temp_dir=$(setup_temp_dir)
 (
@@ -270,11 +241,10 @@ test_start "Help message display"
 output=$(capture_output "$PROJECT_ROOT/setup.sh --help")
 
 if [[ "$output" == *"Markdown Writer Template Setup"* ]] && 
-   [[ "$output" == *"wkhtmltopdf"* ]] && 
    [[ "$output" == *"Usage:"* ]]; then
-    test_pass "Help message displays correctly and mentions wkhtmltopdf"
+    test_pass "Help message displays correctly"
 else
-    test_fail "Help message incomplete or missing wkhtmltopdf reference"
+    test_fail "Help message incomplete"
 fi
 
 # Test 9: Invalid argument handling
@@ -296,28 +266,38 @@ setup_setup_mocks
     
     source "$PROJECT_ROOT/setup.sh"
     
-    # Override command_exists function to simulate all dependencies missing
+    # Override command_exists function to simulate dependencies not initially installed
+    # but available after the first call (simulating successful installation)
+    dep_check_counts=()
     command_exists() {
         case "$1" in
-            pandoc|yq|wkhtmltopdf) return 1 ;;  # Simulate all not found
+            pandoc|yq) 
+                local count_var="${1}_check_count"
+                eval "local count=\${$count_var:-0}"
+                ((count++))
+                eval "$count_var=$count"
+                if [[ $count -eq 1 ]]; then
+                    return 1  # First check: not found
+                else
+                    return 0  # Subsequent checks: found (after "installation")
+                fi
+                ;;
             *) command -v "$1" >/dev/null 2>&1 ;;
         esac
     }
     
-    # Test that all three dependencies would be installed
+    # Test that all dependencies would be installed
     output1=$(install_pandoc "macos" "brew" 2>&1)
     output2=$(install_yq "macos" "brew" 2>&1)  
-    output3=$(install_wkhtmltopdf "macos" "brew" 2>&1)
     
     install_count=0
     [[ "$output1" == *"Installing pandoc"* ]] && ((install_count++))
     [[ "$output2" == *"Installing yq"* ]] && ((install_count++))
-    [[ "$output3" == *"Installing wkhtmltopdf"* ]] && ((install_count++))
     
-    if [[ $install_count -eq 3 ]]; then
+    if [[ $install_count -eq 2 ]]; then
         test_pass "All dependencies installation triggered correctly"
     else
-        test_fail "Dependencies installation incomplete. Triggered: $install_count/3"
+        test_fail "Dependencies installation incomplete. Triggered: $install_count/2"
     fi
 )
 cleanup_temp_dir "$temp_dir"

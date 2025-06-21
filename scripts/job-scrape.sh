@@ -4,11 +4,6 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-# Sanitize string for filename
-sanitize_filename() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_\|_$//g'
-}
-
 # Extract domain from URL
 get_domain() {
     echo "$1" | sed -n 's/.*\/\/\([^\/]*\).*/\1/p' | sed 's/^www\.//'
@@ -281,7 +276,6 @@ Examples:
 
 Features:
     - Downloads HTML content with proper user agent
-    - Converts to PDF using wkhtmltopdf or pandoc
     - Auto-detects company name from URL
     - Creates readable text version when possible
     - Extracts key information (requirements, salary, location)
@@ -289,11 +283,10 @@ Features:
     - Saves to job_postings/formatted/ directory
 
 Supported Conversion Tools:
-    1. wkhtmltopdf (best for HTML-to-PDF) - install with: brew install wkhtmltopdf
-    2. pandoc (backup option) - install with: brew install pandoc
-    3. HTML + text fallback if PDF conversion fails
+    1. pandoc (backup option) - install with: brew install pandoc
+    2. HTML + text fallback if PDF conversion fails
 
-Note: For best results, install wkhtmltopdf which handles modern HTML/CSS better than pandoc.
+Note: For best results, install Google Chrome which handles modern HTML/CSS and archives html as a single file.
 
 Output Files:
     company_role_date.pdf     # Main PDF file

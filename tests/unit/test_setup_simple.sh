@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Simple setup tests focused on wkhtmltopdf
+# Simple setup tests focused on basic functionality
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -9,50 +9,50 @@ source tests/test_framework.sh
 
 test_suite_start "Setup Script Simple Tests"
 
-# Test 1: wkhtmltopdf function existence
-test_start "wkhtmltopdf function exists"
-if grep -q "install_wkhtmltopdf" setup.sh; then
-    test_pass "install_wkhtmltopdf function found in setup.sh"
+# Test 1: Chrome detection function existence
+test_start "Chrome detection function exists"
+if grep -q "detect_chrome" setup.sh; then
+    test_pass "detect_chrome function found in setup.sh"
 else
-    test_fail "install_wkhtmltopdf function not found"
+    test_fail "detect_chrome function not found"
 fi
 
-# Test 2: wkhtmltopdf mentioned in help
-test_start "wkhtmltopdf mentioned in help"
+# Test 2: Chrome mentioned in help
+test_start "Chrome mentioned in help"
 output=$(capture_output "$PROJECT_ROOT/setup.sh --help")
-if [[ "$output" == *"wkhtmltopdf"* ]]; then
-    test_pass "wkhtmltopdf mentioned in help text"
+if [[ "$output" == *"Chrome"* ]]; then
+    test_pass "Chrome mentioned in help text"
 else
-    test_fail "wkhtmltopdf not mentioned in help text"
+    test_fail "Chrome not mentioned in help text"
 fi
 
-# Test 3: main function calls wkhtmltopdf installation
-test_start "main function includes wkhtmltopdf installation"
-if grep -A 20 "Install dependencies" setup.sh | grep -q "install_wkhtmltopdf"; then
-    test_pass "main function calls install_wkhtmltopdf"
+# Test 3: Chrome path validation function exists
+test_start "Chrome path validation function exists"
+if grep -q "validate_chrome_path" setup.sh; then
+    test_pass "validate_chrome_path function found in setup.sh"
 else
-    test_fail "main function doesn't call install_wkhtmltopdf"
+    test_fail "validate_chrome_path function not found"
 fi
 
-# Test 4: wkhtmltopdf supports multiple package managers
-test_start "wkhtmltopdf supports multiple package managers"
+# Test 4: Chrome detection supports multiple platforms
+test_start "Chrome detection supports multiple platforms"
 checks=0
-grep -A 30 "install_wkhtmltopdf" setup.sh | grep -q "brew" && ((checks++))
-grep -A 30 "install_wkhtmltopdf" setup.sh | grep -q "apt" && ((checks++))
-grep -A 30 "install_wkhtmltopdf" setup.sh | grep -q "yum" && ((checks++))
+grep -A 50 "detect_chrome" setup.sh | grep -q "macos" && ((checks++))
+grep -A 50 "detect_chrome" setup.sh | grep -q "linux" && ((checks++))
+grep -A 50 "detect_chrome" setup.sh | grep -q "windows" && ((checks++))
 
 if [[ $checks -ge 3 ]]; then
-    test_pass "wkhtmltopdf supports multiple package managers ($checks found)"
+    test_pass "Chrome detection supports multiple platforms ($checks found)"
 else
-    test_fail "wkhtmltopdf supports insufficient package managers ($checks found)"
+    test_fail "Chrome detection supports insufficient platforms ($checks found)"
 fi
 
-# Test 5: wkhtmltopdf handles unknown package manager gracefully
-test_start "wkhtmltopdf handles unknown package manager gracefully"
-if grep -A 50 "install_wkhtmltopdf" setup.sh | grep -q "optional"; then
-    test_pass "wkhtmltopdf installation is marked as optional for unknown systems"
+# Test 5: Chrome prompt function handles graceful fallback
+test_start "Chrome prompt function handles graceful fallback"
+if grep -A 50 "prompt_chrome_path" setup.sh | grep -q "Skip Chrome setup"; then
+    test_pass "Chrome setup can be skipped gracefully"
 else
-    test_fail "wkhtmltopdf doesn't handle unknown systems gracefully"
+    test_fail "Chrome setup doesn't handle graceful fallback"
 fi
 
 test_suite_end
