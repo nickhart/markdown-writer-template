@@ -55,4 +55,28 @@ else
     test_fail "Chrome setup doesn't handle graceful fallback"
 fi
 
+# Test 6: LaTeX detection function exists
+test_start "LaTeX detection function exists"
+if grep -q "detect_latex" setup.sh; then
+    test_pass "detect_latex function found in setup.sh"
+else
+    test_fail "detect_latex function not found"
+fi
+
+# Test 7: LaTeX validation function exists
+test_start "LaTeX validation function exists"
+if grep -q "validate_latex_for_pdf" setup.sh; then
+    test_pass "validate_latex_for_pdf function found in setup.sh"
+else
+    test_fail "validate_latex_for_pdf function not found"
+fi
+
+# Test 8: LaTeX prompt function handles graceful fallback
+test_start "LaTeX prompt function handles graceful fallback"
+if grep -A 50 "prompt_latex_installation" setup.sh | grep -q "Skip LaTeX setup"; then
+    test_pass "LaTeX setup can be skipped gracefully"
+else
+    test_fail "LaTeX setup doesn't handle graceful fallback"
+fi
+
 test_suite_end

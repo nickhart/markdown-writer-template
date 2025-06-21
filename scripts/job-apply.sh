@@ -31,6 +31,25 @@ get_date() {
     esac
 }
 
+# Check if PDF generation is available
+is_pdf_generation_available() {
+    local config_file="$PROJECT_ROOT/.writer-config.yml"
+    
+    if [[ ! -f "$config_file" ]]; then
+        return 1
+    fi
+    
+    if command_exists yq; then
+        local pdf_enabled
+        pdf_enabled=$(yq eval '.pdf_generation' "$config_file" 2>/dev/null)
+        if [[ "$pdf_enabled" == "true" ]]; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
 # Prompt for input with default
 prompt_input() {
     local prompt="$1"
@@ -285,8 +304,15 @@ EOF
         "$format_script" "$app_dir/resume.md" || log_warning "Failed to format resume"
         "$format_script" "$app_dir/cover_letter.md" || log_warning "Failed to format cover letter"
 
-        # Also create PDF versions
-        "$format_script" "$app_dir/resume.md" --format pdf || log_warning "Failed to create PDF resume"
+        # Create PDF versions if LaTeX is available
+        if is_pdf_generation_available; then
+            "$format_script" "$app_dir/resume.md" --format pdf || log_warning "Failed to create PDF resume"
+            "$format_script" "$app_dir/cover_letter.md" --format pdf || log_warning "Failed to create PDF cover letter"
+            log_success "PDF versions created"
+        else
+            log_warning "PDF generation not available (LaTeX not installed)"
+            log_info "Install LaTeX and re-run setup to enable PDF generation"
+        fi
     else
         log_warning "Format script not found or not executable"
     fi
@@ -296,8 +322,13 @@ EOF
     echo
     echo "Application directory: $app_dir"
     echo "Files created:"
-    echo "  - resume.md (+ formatted versions)"
-    echo "  - cover_letter.md (+ formatted versions)"
+    if is_pdf_generation_available; then
+        echo "  - resume.md (+ DOCX and PDF versions)"
+        echo "  - cover_letter.md (+ DOCX and PDF versions)"
+    else
+        echo "  - resume.md (+ DOCX version)"
+        echo "  - cover_letter.md (+ DOCX version)"
+    fi
     if [[ -n "$url" ]]; then
         echo "  - job_description.pdf"
     fi
@@ -339,7 +370,7 @@ Features:
     - Creates cover letter with template variables
     - Downloads job posting as PDF (if URL provided)
     - Generates application metadata
-    - Auto-formats documents to DOCX and PDF
+    - Auto-formats documents to DOCX (and PDF if LaTeX is available)
     - Template variable replacement:
       {{COMPANY_NAME}} → Company name
       {{ROLE_TITLE}} → Role title

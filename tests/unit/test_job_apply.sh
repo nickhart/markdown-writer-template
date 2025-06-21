@@ -296,4 +296,36 @@ setup_mocks
 cleanup_temp_dir "$temp_dir"
 cleanup_mocks
 
+# Test 10: PDF generation availability check
+test_start "PDF generation availability check"
+temp_dir=$(setup_temp_dir)
+(
+    cd "$temp_dir"
+    
+    source "$PROJECT_ROOT/scripts/job-apply.sh"
+    
+    # Create a mock config file
+    mkdir -p test_project
+    echo "pdf_generation: true" > test_project/.writer-config.yml
+    
+    # Override PROJECT_ROOT for the test
+    PROJECT_ROOT="test_project"
+    
+    if is_pdf_generation_available; then
+        test_pass "PDF generation availability check works when enabled"
+    else
+        test_fail "PDF generation check failed when should be enabled"
+    fi
+    
+    # Test with PDF disabled
+    echo "pdf_generation: false" > test_project/.writer-config.yml
+    
+    if ! is_pdf_generation_available; then
+        test_pass "PDF generation correctly disabled when LaTeX unavailable"
+    else
+        test_fail "PDF generation check failed when should be disabled"
+    fi
+)
+cleanup_temp_dir "$temp_dir"
+
 test_suite_end

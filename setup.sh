@@ -189,6 +189,106 @@ prompt_chrome_path() {
     esac
 }
 
+# Detect LaTeX installation
+detect_latex() {
+    # Check for common LaTeX engines
+    local latex_engines=("pdflatex" "xelatex" "lualatex")
+    
+    for engine in "${latex_engines[@]}"; do
+        if command_exists "$engine"; then
+            echo "$engine"
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# Validate LaTeX installation for PDF generation
+validate_latex_for_pdf() {
+    local latex_engine="$1"
+    
+    if [[ -z "$latex_engine" ]]; then
+        return 1
+    fi
+    
+    # Test LaTeX installation by creating a minimal document
+    local test_dir="/tmp/latex_test_$$"
+    mkdir -p "$test_dir"
+    
+    cat > "$test_dir/test.tex" << 'EOF'
+\documentclass{article}
+\begin{document}
+Hello LaTeX
+\end{document}
+EOF
+    
+    if (cd "$test_dir" && "$latex_engine" -interaction=nonstopmode test.tex >/dev/null 2>&1); then
+        rm -rf "$test_dir"
+        return 0
+    else
+        rm -rf "$test_dir"
+        return 1
+    fi
+}
+
+# Prompt user for LaTeX installation
+prompt_latex_installation() {
+    local os="$1"
+    
+    echo
+    log_warning "LaTeX was not detected on your system."
+    echo
+    echo "LaTeX is required for PDF generation from markdown files."
+    echo "You have the following options:"
+    echo
+    
+    case "$os" in
+        macos)
+            echo "1. Install MacTeX (recommended):"
+            echo "   • Download from: https://www.tug.org/mactex/"
+            echo "   • Or install via Homebrew: brew install --cask mactex"
+            echo "   • Smaller option: brew install --cask basictex"
+            ;;
+        linux)
+            echo "1. Install TeX Live:"
+            echo "   • Ubuntu/Debian: sudo apt-get install texlive-latex-recommended texlive-latex-extra"
+            echo "   • Full installation: sudo apt-get install texlive-full"
+            echo "   • Fedora/RHEL: sudo dnf install texlive-latex texlive-latex-bin"
+            echo "   • Arch: sudo pacman -S texlive-most"
+            ;;
+        windows)
+            echo "1. Install TeX Live or MiKTeX:"
+            echo "   • TeX Live: https://www.tug.org/texlive/"
+            echo "   • MiKTeX: https://miktex.org/"
+            echo "   • Or use Chocolatey: choco install miktex"
+            ;;
+    esac
+    
+    echo "2. Skip LaTeX setup (PDF generation will not be available)"
+    echo
+    
+    local choice
+    read -p "Choose an option (1-2): " choice
+    
+    case "$choice" in
+        1)
+            echo
+            log_info "Please install LaTeX using the instructions above, then re-run this setup script."
+            echo "Setup will continue without LaTeX for now."
+            return 1
+            ;;
+        2)
+            log_info "Skipping LaTeX setup. PDF generation will not be available."
+            return 1
+            ;;
+        *)
+            log_warning "Invalid choice. Skipping LaTeX setup."
+            return 1
+            ;;
+    esac
+}
+
 # Install pandoc
 install_pandoc() {
     local os="$1"
@@ -397,6 +497,46 @@ create_configs() {
         log_info "You can manually add 'chrome_path: \"$chrome_path\"' to .writer-config.yml"
     fi
 
+    # Detect and configure LaTeX
+    local latex_engine
+    if latex_engine=$(detect_latex); then
+        log_success "LaTeX detected: $latex_engine"
+        
+        # Validate LaTeX for PDF generation
+        if validate_latex_for_pdf "$latex_engine"; then
+            log_success "LaTeX validation successful - PDF generation available"
+            
+            # Save LaTeX configuration
+            if command_exists yq; then
+                yq eval ".latex_engine = \"$latex_engine\"" -i ".writer-config.yml"
+                yq eval ".pdf_generation = true" -i ".writer-config.yml"
+                log_success "LaTeX configuration added to global configuration"
+            else
+                log_warning "yq not available, LaTeX configuration not saved to config"
+                log_info "You can manually add 'latex_engine: \"$latex_engine\"' and 'pdf_generation: true' to .writer-config.yml"
+            fi
+        else
+            log_warning "LaTeX detected but validation failed - PDF generation may not work properly"
+            if command_exists yq; then
+                yq eval ".latex_engine = \"$latex_engine\"" -i ".writer-config.yml"
+                yq eval ".pdf_generation = false" -i ".writer-config.yml"
+            fi
+        fi
+    else
+        # Prompt user for LaTeX installation
+        log_info "Checking LaTeX availability for PDF generation..."
+        if ! prompt_latex_installation "$os"; then
+            log_info "Continuing setup without LaTeX"
+            log_info "Note: PDF generation will not be available"
+            
+            # Save that PDF generation is not available
+            if command_exists yq; then
+                yq eval ".pdf_generation = false" -i ".writer-config.yml"
+                log_info "PDF generation disabled in configuration"
+            fi
+        fi
+    fi
+
     # Directory-specific configs
     local dirs=("blog" "resumes" "cover_letters" "interviews")
     for dir in "${dirs[@]}"; do
@@ -420,7 +560,7 @@ Markdown Writer Template Setup
 
 This script will:
 1. Install required dependencies (pandoc, yq)
-2. Configure optional dependencies (Google Chrome for better HTML archiving)
+2. Configure optional dependencies (Google Chrome for HTML archiving, LaTeX for PDF generation)
 3. Set up shell aliases
 4. Configure git hooks
 5. Create initial configuration files
