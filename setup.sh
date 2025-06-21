@@ -1,33 +1,8 @@
 #!/bin/bash
 
-set -euo pipefail
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Configuration
+# Source common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1" >&2
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
+source "$SCRIPT_DIR/scripts/common.sh"
 
 # Detect OS
 detect_os() {
@@ -56,9 +31,162 @@ detect_package_manager() {
     fi
 }
 
-# Check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
+
+# Detect Chrome installation
+detect_chrome() {
+    local os="$1"
+    
+    case "$os" in
+        macos)
+            # Check common macOS Chrome locations
+            local chrome_paths=(
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                "/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta"
+                "/Applications/Google Chrome Dev.app/Contents/MacOS/Google Chrome Dev"
+                "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
+            )
+            
+            for path in "${chrome_paths[@]}"; do
+                if [[ -x "$path" ]]; then
+                    echo "$path"
+                    return 0
+                fi
+            done
+            ;;
+        linux)
+            # Check common Linux Chrome locations
+            local chrome_paths=(
+                "/usr/bin/google-chrome"
+                "/usr/bin/google-chrome-stable"
+                "/usr/bin/google-chrome-beta"
+                "/usr/bin/google-chrome-unstable"
+                "/usr/bin/chromium"
+                "/usr/bin/chromium-browser"
+                "/snap/bin/chromium"
+            )
+            
+            for path in "${chrome_paths[@]}"; do
+                if [[ -x "$path" ]]; then
+                    echo "$path"
+                    return 0
+                fi
+            done
+            ;;
+        windows)
+            # Check common Windows Chrome locations
+            local chrome_paths=(
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+                "$HOME\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
+            )
+            
+            for path in "${chrome_paths[@]}"; do
+                if [[ -x "$path" ]]; then
+                    echo "$path"
+                    return 0
+                fi
+            done
+            ;;
+    esac
+    
+    return 1
+}
+
+# Validate Chrome path
+validate_chrome_path() {
+    local chrome_path="$1"
+    
+    if [[ -z "$chrome_path" ]]; then
+        return 1
+    fi
+    
+    if [[ ! -f "$chrome_path" ]]; then
+        log_error "File not found: $chrome_path"
+        return 1
+    fi
+    
+    if [[ ! -x "$chrome_path" ]]; then
+        log_error "File is not executable: $chrome_path"
+        return 1
+    fi
+    
+    # Test if it's actually Chrome by running --version
+    if "$chrome_path" --version >/dev/null 2>&1; then
+        return 0
+    else
+        log_error "File does not appear to be a valid Chrome executable: $chrome_path"
+        return 1
+    fi
+}
+
+# Prompt user for Chrome path
+prompt_chrome_path() {
+    local os="$1"
+    
+    echo
+    log_warning "Chrome was not detected automatically."
+    echo
+    echo "Chrome is required for job posting archiving functionality."
+    echo "You have the following options:"
+    echo
+    
+    case "$os" in
+        macos)
+            echo "1. Install Chrome:"
+            echo "   • Download from: https://www.google.com/chrome/"
+            echo "   • Or install via Homebrew: brew install --cask google-chrome"
+            ;;
+        linux)
+            echo "1. Install Chrome:"
+            echo "   • Ubuntu/Debian: wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -"
+            echo "                    sudo sh -c 'echo \"deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main\" >> /etc/apt/sources.list.d/google-chrome.list'"
+            echo "                    sudo apt update && sudo apt install google-chrome-stable"
+            echo "   • Fedora/RHEL:   sudo dnf install google-chrome-stable"
+            echo "   • Or install Chromium: sudo apt install chromium-browser (Ubuntu/Debian)"
+            ;;
+        windows)
+            echo "1. Install Chrome:"
+            echo "   • Download from: https://www.google.com/chrome/"
+            echo "   • Or use Chocolatey: choco install googlechrome"
+            ;;
+    esac
+    
+    echo "2. Provide a custom Chrome path (if you have Chrome installed elsewhere)"
+    echo "3. Skip Chrome setup (job posting archiving will not work)"
+    echo
+    
+    local choice
+    read -p "Choose an option (1-3): " choice
+    
+    case "$choice" in
+        1)
+            echo
+            log_info "Please install Chrome using the instructions above, then re-run this setup script."
+            echo "Setup will continue without Chrome for now."
+            return 1
+            ;;
+        2)
+            echo
+            local custom_path
+            read -p "Enter the full path to your Chrome executable: " custom_path
+            
+            if validate_chrome_path "$custom_path"; then
+                echo "$custom_path"
+                return 0
+            else
+                log_error "Invalid Chrome path. Setup will continue without Chrome."
+                return 1
+            fi
+            ;;
+        3)
+            log_info "Skipping Chrome setup. Job posting archiving will not be available."
+            return 1
+            ;;
+        *)
+            log_warning "Invalid choice. Skipping Chrome setup."
+            return 1
+            ;;
+    esac
 }
 
 # Install pandoc
@@ -165,6 +293,51 @@ install_yq() {
     fi
 }
 
+# Install wkhtmltopdf
+install_wkhtmltopdf() {
+    local os="$1"
+    local pkg_manager="$2"
+    
+    if command_exists wkhtmltopdf; then
+        log_success "wkhtmltopdf is already installed"
+        return 0
+    fi
+    
+    log_info "Installing wkhtmltopdf..."
+    
+    case "$pkg_manager" in
+        brew)
+            brew install wkhtmltopdf
+            ;;
+        apt)
+            sudo apt-get update && sudo apt-get install -y wkhtmltopdf
+            ;;
+        yum)
+            sudo yum install -y wkhtmltopdf
+            ;;
+        dnf)
+            sudo dnf install -y wkhtmltopdf
+            ;;
+        pacman)
+            sudo pacman -S --noconfirm wkhtmltopdf
+            ;;
+        *)
+            log_warning "Cannot install wkhtmltopdf automatically on this system"
+            log_info "Please install wkhtmltopdf manually from: https://wkhtmltopdf.org/downloads.html"
+            log_info "Or use your system's package manager"
+            log_info "This is optional - job posting scraping will fall back to HTML format"
+            return 0  # Don't fail setup for optional dependency
+            ;;
+    esac
+    
+    if command_exists wkhtmltopdf; then
+        log_success "wkhtmltopdf installed successfully"
+    else
+        log_warning "wkhtmltopdf installation failed, but continuing setup"
+        log_info "Job posting scraping will save as HTML instead of PDF"
+    fi
+}
+
 
 # Setup shell aliases
 setup_shell_aliases() {
@@ -243,6 +416,33 @@ create_configs() {
         log_success "Global configuration created"
     fi
     
+    # Detect and configure Chrome path
+    local os
+    os=$(detect_os)
+    local chrome_path
+    
+    if chrome_path=$(detect_chrome "$os"); then
+        log_success "Chrome detected at: $chrome_path"
+    else
+        # Prompt user for Chrome installation or path
+        if chrome_path=$(prompt_chrome_path "$os"); then
+            log_success "Using Chrome at: $chrome_path"
+        else
+            log_info "Continuing setup without Chrome"
+            log_info "Note: Job posting archiving will not be available"
+            chrome_path=""
+        fi
+    fi
+    
+    # Save Chrome path to config if we have one
+    if [[ -n "$chrome_path" ]] && command_exists yq; then
+        yq eval ".chrome_path = \"$chrome_path\"" -i ".writer-config.yml"
+        log_success "Chrome path added to global configuration"
+    elif [[ -n "$chrome_path" ]]; then
+        log_warning "yq not available, Chrome path not saved to config"
+        log_info "You can manually add 'chrome_path: \"$chrome_path\"' to .writer-config.yml"
+    fi
+    
     # Directory-specific configs
     local dirs=("blog" "resumes" "cover_letters" "interviews")
     for dir in "${dirs[@]}"; do
@@ -266,7 +466,7 @@ Markdown Writer Template Setup
 
 This script will:
 1. Install required dependencies (pandoc, yq)
-2. Install optional dependencies (wkhtmltopdf)
+2. Install optional dependencies (wkhtmltopdf for better HTML-to-PDF conversion)
 3. Set up shell aliases
 4. Configure git hooks
 5. Create initial configuration files
@@ -355,6 +555,9 @@ main() {
             log_error "Failed to install yq"
             exit 1
         }
+        
+        # Install wkhtmltopdf (optional, don't fail setup if it fails)
+        install_wkhtmltopdf "$os" "$pkg_manager"
         
         echo
     fi

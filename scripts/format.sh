@@ -1,38 +1,8 @@
 #!/bin/bash
 
-set -euo pipefail
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Script directory
+# Source common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1" >&2
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-# Check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+source "$SCRIPT_DIR/common.sh"
 
 # Find config by walking up directories
 find_config() {
@@ -44,13 +14,13 @@ find_config() {
         fi
         dir=$(dirname "$dir")
     done
-    
+
     # Fallback to global config
     if [[ -f "$PROJECT_ROOT/.writer-config.yml" ]]; then
         echo "$PROJECT_ROOT/.writer-config.yml"
         return 0
     fi
-    
+
     return 1
 }
 
@@ -59,30 +29,30 @@ get_config() {
     local config_file="$1"
     local key="$2"
     local default="${3:-null}"
-    
+
     if [[ ! -f "$config_file" ]]; then
         echo "$default"
         return
     fi
-    
+
     if ! command_exists yq; then
         log_warning "yq not found, using default value for $key"
         echo "$default"
         return
     fi
-    
+
     local value
     if ! value=$(yq eval ".$key" "$config_file" 2>/dev/null); then
         echo "$default"
         return
     fi
-    
+
     # Handle yq null output and empty strings
     value=$(echo "$value" | tr -d '\n' | tr -d '"')
-    
+
     # Remove leading/trailing whitespace
     value=$(echo "$value" | xargs 2>/dev/null || echo "$value")
-    
+
     if [[ "$value" == "null" || -z "$value" ]]; then
         echo "$default"
     else
@@ -94,27 +64,27 @@ get_config() {
 get_pandoc_options() {
     local config_file="$1"
     local format="$2"
-    
+
     # Try format-specific options first (pandoc_options.format)
     local options
     options=$(get_config "$config_file" "pandoc_options.$format" "")
-    
+
     # If that's empty or null, and we didn't find format-specific options,
     # check if pandoc_options is a string (not an object)
     if [[ "$options" == "" ]] || [[ "$options" == "null" ]]; then
         local pandoc_opts_type
         pandoc_opts_type=$(yq eval '.pandoc_options | type' "$config_file" 2>/dev/null || echo "null")
-        
+
         if [[ "$pandoc_opts_type" == "string" ]]; then
             options=$(get_config "$config_file" "pandoc_options" "")
         fi
     fi
-    
+
     # Ensure we never return "null" - always return empty string if nothing found
     if [[ "$options" == "null" ]]; then
         options=""
     fi
-    
+
     echo "$options"
 }
 
@@ -122,7 +92,7 @@ get_pandoc_options() {
 ensure_formatted_dir() {
     local file_dir="$1"
     local formatted_dir="$file_dir/formatted"
-    
+
     if [[ ! -d "$formatted_dir" ]]; then
         mkdir -p "$formatted_dir"
         log_info "Created formatted directory: $formatted_dir"
@@ -134,12 +104,12 @@ format_file() {
     local md_file="$1"
     local format_override="${2:-}"
     local output_override="${3:-}"
-    
+
     if [[ ! -f "$md_file" ]]; then
         log_error "File not found: $md_file"
         return 1
     fi
-    
+
     # Get absolute path and directory
     local md_file_abs
     md_file_abs=$(realpath "$md_file")
@@ -147,14 +117,14 @@ format_file() {
     file_dir=$(dirname "$md_file_abs")
     local file_name
     file_name=$(basename "$md_file" .md)
-    
+
     # Find configuration
     local config_file
     if ! config_file=$(find_config "$file_dir"); then
         log_warning "No configuration found, using defaults"
         config_file=""
     fi
-    
+
     # Determine format
     local format="docx"  # default
     if [[ -n "$format_override" ]]; then
@@ -162,7 +132,7 @@ format_file() {
     elif [[ -n "$config_file" ]]; then
         format=$(get_config "$config_file" "format" "docx")
     fi
-    
+
     # Determine output file
     local output_file
     if [[ -n "$output_override" ]]; then
@@ -171,23 +141,23 @@ format_file() {
         ensure_formatted_dir "$file_dir"
         output_file="$file_dir/formatted/$file_name.$format"
     fi
-    
+
     # Get pandoc options
     local pandoc_options=""
     if [[ -n "$config_file" ]]; then
         pandoc_options=$(get_pandoc_options "$config_file" "$format")
-        
+
         # Handle reference document path
         if [[ "$pandoc_options" == *"--reference-doc="* ]]; then
             local ref_doc
             ref_doc=$(echo "$pandoc_options" | sed -n 's/.*--reference-doc=\([^ ]*\).*/\1/p')
-            
+
             # If reference doc is relative, make it relative to config file location
             if [[ ! "$ref_doc" == /* ]]; then
                 local config_dir
                 config_dir=$(dirname "$config_file")
                 local full_ref_path="$config_dir/$ref_doc"
-                
+
                 if [[ -f "$full_ref_path" ]]; then
                     pandoc_options=$(echo "$pandoc_options" | sed "s|--reference-doc=$ref_doc|--reference-doc=$full_ref_path|")
                 else
@@ -196,22 +166,22 @@ format_file() {
             fi
         fi
     fi
-    
+
     # Check if pandoc is available
     if ! command_exists pandoc; then
         log_error "pandoc is not installed. Please run the setup script."
         return 1
     fi
-    
+
     log_info "Formatting $md_file -> $output_file (format: $format)"
-    
+
     # Build and execute pandoc command
     local pandoc_cmd="pandoc \"$md_file_abs\" -o \"$output_file\""
-    
+
     if [[ -n "$pandoc_options" ]]; then
         pandoc_cmd="pandoc \"$md_file_abs\" $pandoc_options -o \"$output_file\""
     fi
-    
+
     if eval "$pandoc_cmd"; then
         log_success "Successfully formatted: $(basename "$output_file")"
     else
@@ -224,16 +194,16 @@ format_file() {
 format_all() {
     local target_dir="${1:-.}"
     local format_override="${2:-}"
-    
+
     log_info "Formatting all markdown files in: $target_dir"
-    
+
     local count=0
     while IFS= read -r -d '' file; do
         if format_file "$file" "$format_override"; then
             ((count++))
         fi
     done < <(find "$target_dir" -name "*.md" -not -path "*/formatted/*" -print0)
-    
+
     log_success "Formatted $count files"
 }
 
@@ -284,7 +254,7 @@ main() {
     local format_all_files=false
     local target_dir="."
     local verbose=false
-    
+
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -343,19 +313,19 @@ main() {
                 ;;
         esac
     done
-    
+
     # Validate arguments
     if [[ "$format_all_files" == true ]] && [[ -n "$file" ]]; then
         log_error "Cannot specify both a file and --all"
         exit 1
     fi
-    
+
     if [[ "$format_all_files" == false ]] && [[ -z "$file" ]]; then
         log_error "Must specify either a file or --all"
         print_usage
         exit 1
     fi
-    
+
     # Execute based on mode
     if [[ "$format_all_files" == true ]]; then
         format_all "$target_dir" "$format_override"

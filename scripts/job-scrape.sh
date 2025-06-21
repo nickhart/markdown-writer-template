@@ -1,38 +1,8 @@
 #!/bin/bash
 
-set -euo pipefail
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Script directory
+# Source common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1" >&2
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-# Check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+source "$SCRIPT_DIR/common.sh"
 
 # Sanitize string for filename
 sanitize_filename() {
@@ -49,7 +19,7 @@ extract_company_from_url() {
     local url="$1"
     local domain
     domain=$(get_domain "$url")
-    
+
     # Extract company name from common patterns
     case "$domain" in
         *jobs.*)
@@ -70,18 +40,77 @@ extract_company_from_url() {
     esac
 }
 
+archive_job_posting() {
+    local url="$1"
+    local filename="$2"
+
+    log_info "Archiving job posting with proper UTF-8..."
+
+    # Get Chrome path from config
+    local chrome_path=""
+    local config_file="$PROJECT_ROOT/.writer-config.yml"
+
+    if [[ -f "$config_file" ]] && command_exists yq; then
+        chrome_path=$(yq eval '.chrome_path' "$config_file" 2>/dev/null)
+        if [[ "$chrome_path" == "null" || -z "$chrome_path" ]]; then
+            chrome_path=""
+        fi
+    fi
+
+    # Fallback to common Chrome locations if not in config
+    if [[ -z "$chrome_path" ]]; then
+        local chrome_paths=(
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            "/usr/bin/google-chrome"
+            "/usr/bin/google-chrome-stable"
+            "/usr/bin/chromium"
+            "/usr/bin/chromium-browser"
+        )
+
+        for path in "${chrome_paths[@]}"; do
+            if [[ -x "$path" ]]; then
+                chrome_path="$path"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$chrome_path" ]]; then
+        log_error "Chrome not found. Please install Chrome or update the chrome_path in .writer-config.yml"
+        return 1
+    fi
+
+    if [[ ! -x "$chrome_path" ]]; then
+        log_error "Chrome executable not found at: $chrome_path"
+        return 1
+    fi
+
+    # UTF-8 BOM + Chrome dump = perfect encoding
+    {
+        printf '\xEF\xBB\xBF'  # UTF-8 BOM
+        "$chrome_path" \
+            --headless \
+            --disable-gpu \
+            --dump-dom \
+            --virtual-time-budget=5000 \
+            "$url"
+    } > "$filename"
+
+    log_success "Clean UTF-8 HTML saved to $filename"
+}
+
 # Download and convert job posting
 scrape_job_posting() {
     local url="$1"
     local company="${2:-}"
     local role="${3:-}"
     local output_file="${4:-}"
-    
+
     # Auto-detect company if not provided
     if [[ -z "$company" ]]; then
         company=$(extract_company_from_url "$url")
     fi
-    
+
     # Create default filename if not provided
     if [[ -z "$output_file" ]]; then
         local company_clean
@@ -92,92 +121,31 @@ scrape_job_posting() {
         fi
         local date_str
         date_str=$(date +%Y%m%d)
-        
+
         # Use relative path if directory exists, otherwise absolute
         if [[ -d "job_postings/formatted" ]]; then
-            output_file="job_postings/formatted/${company_clean}${role_clean}_${date_str}.pdf"
+            output_file="job_postings/formatted/${company_clean}${role_clean}_${date_str}.html"
         else
             mkdir -p "$PROJECT_ROOT/job_postings/formatted"
-            output_file="$PROJECT_ROOT/job_postings/formatted/${company_clean}${role_clean}_${date_str}.pdf"
+            output_file="$PROJECT_ROOT/job_postings/formatted/${company_clean}${role_clean}_${date_str}.html"
         fi
     fi
-    
+
     # Ensure output directory exists
     mkdir -p "$(dirname "$output_file")"
-    
+
     log_info "Scraping job posting from: $url"
     log_info "Saving to: $output_file"
-    
-    # Download HTML content
-    local temp_html="/tmp/job_posting_$$.html"
-    local temp_text="/tmp/job_posting_$$.txt"
-    
-    if ! command_exists curl; then
-        log_error "curl is required for downloading job postings"
-        return 1
-    fi
-    
-    # Download with user agent to avoid blocking
-    if ! curl -L -s \
-        -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
-        -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
-        "$url" -o "$temp_html"; then
-        log_error "Failed to download job posting"
-        return 1
-    fi
-    
-    # Check if we got a valid HTML file
-    if [[ ! -s "$temp_html" ]]; then
-        log_error "Downloaded file is empty"
-        rm -f "$temp_html"
-        return 1
-    fi
-    
-    # Convert to PDF using pandoc
-    local conversion_success=false
-    
-    if command_exists pandoc; then
-        log_info "Converting to PDF using pandoc..."
-        if pandoc "$temp_html" -o "$output_file" 2>/dev/null; then
-            conversion_success=true
-        else
-            log_warning "PDF conversion failed (SVG images or missing LaTeX)"
-        fi
-    fi
-    
-    # If PDF conversion failed, save as HTML and create a text version
-    if [[ "$conversion_success" == false ]]; then
-        local html_output="${output_file%.pdf}.html"
-        cp "$temp_html" "$html_output"
-        log_warning "PDF conversion failed, saved as HTML: $html_output"
-        
-        # Try to create a readable text version
-        if command_exists lynx; then
-            lynx -dump "$temp_html" > "$temp_text" 2>/dev/null || true
-        elif command_exists w3m; then
-            w3m -dump "$temp_html" > "$temp_text" 2>/dev/null || true
-        elif command_exists links; then
-            links -dump "$temp_html" > "$temp_text" 2>/dev/null || true
-        fi
-        
-        if [[ -s "$temp_text" ]]; then
-            local text_output="${output_file%.pdf}.txt"
-            mv "$temp_text" "$text_output"
-            log_info "Also created text version: $text_output"
-        fi
-        
-        output_file="$html_output"
-    fi
-    
-    # Clean up temp files
-    rm -f "$temp_html" "$temp_text"
-    
+
+    # Use new Chrome archiving function
+    archive_job_posting "$url" "$output_file"
+
     if [[ -f "$output_file" ]]; then
         log_success "Job posting saved: $output_file"
-        
+
         # Try to extract key information
         extract_job_info "$output_file" "$company" "$role"
-        
+
         return 0
     else
         log_error "Failed to save job posting"
@@ -190,12 +158,12 @@ extract_job_info() {
     local file="$1"
     local company="$2"
     local role="$3"
-    
+
     log_info "Extracting job information..."
-    
+
     # Create a summary file
     local summary_file="${file%.*}_summary.txt"
-    
+
     cat > "$summary_file" << EOF
 Job Posting Summary
 ==================
@@ -207,34 +175,34 @@ Source File: $(basename "$file")
 
 Key Information Extracted:
 EOF
-    
+
     # If we have a text version, try to extract key details
     local text_file="${file%.*}.txt"
     if [[ -f "$text_file" ]]; then
         echo "" >> "$summary_file"
-        
+
         # Look for common patterns (this is basic - could be enhanced)
         if grep -qi "requirements\|qualifications\|skills" "$text_file"; then
             echo "Requirements/Qualifications found:" >> "$summary_file"
             grep -i -A 10 "requirements\|qualifications\|skills" "$text_file" | head -15 >> "$summary_file" || true
             echo "" >> "$summary_file"
         fi
-        
+
         if grep -qi "salary\|compensation\|pay" "$text_file"; then
             echo "Compensation mentioned:" >> "$summary_file"
             grep -i "salary\|compensation\|pay" "$text_file" | head -5 >> "$summary_file" || true
             echo "" >> "$summary_file"
         fi
-        
+
         if grep -qi "remote\|location\|office" "$text_file"; then
             echo "Location/Remote info:" >> "$summary_file"
             grep -i "remote\|location\|office" "$text_file" | head -5 >> "$summary_file" || true
             echo "" >> "$summary_file"
         fi
     fi
-    
+
     echo "Note: This is an automated extraction. Review the full job posting for complete details." >> "$summary_file"
-    
+
     log_success "Created summary: $summary_file"
 }
 
@@ -246,15 +214,15 @@ list_job_postings() {
     else
         local postings_dir="$PROJECT_ROOT/job_postings/formatted"
     fi
-    
+
     if [[ ! -d "$postings_dir" ]]; then
         log_info "No job postings directory found"
         return
     fi
-    
+
     echo "Scraped Job Postings:"
     echo "===================="
-    
+
     local count=0
     for file in "$postings_dir"/*; do
         if [[ -f "$file" ]] && [[ ! "$file" == *"_summary.txt" ]]; then
@@ -265,9 +233,9 @@ list_job_postings() {
             size=$(ls -lh "$file" | awk '{print $5}')
             local date
             date=$(ls -l "$file" | awk '{print $6, $7, $8}')
-            
+
             echo "$count. $basename ($size) - $date"
-            
+
             # Show summary if it exists
             local summary_file="${file%.*}_summary.txt"
             if [[ -f "$summary_file" ]]; then
@@ -275,7 +243,7 @@ list_job_postings() {
             fi
         fi
     done
-    
+
     if [[ $count -eq 0 ]]; then
         echo "No job postings found"
     else
@@ -321,8 +289,11 @@ Features:
     - Saves to job_postings/formatted/ directory
 
 Supported Conversion Tools:
-    1. pandoc (recommended) - install with: brew install pandoc
-    2. HTML + text fallback if PDF conversion fails
+    1. wkhtmltopdf (best for HTML-to-PDF) - install with: brew install wkhtmltopdf
+    2. pandoc (backup option) - install with: brew install pandoc
+    3. HTML + text fallback if PDF conversion fails
+
+Note: For best results, install wkhtmltopdf which handles modern HTML/CSS better than pandoc.
 
 Output Files:
     company_role_date.pdf     # Main PDF file
@@ -339,7 +310,7 @@ main() {
     local role=""
     local output_file=""
     local list_flag=false
-    
+
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -394,26 +365,26 @@ main() {
                 ;;
         esac
     done
-    
+
     # Handle list flag
     if [[ "$list_flag" == true ]]; then
         list_job_postings
         exit 0
     fi
-    
+
     # Validate URL
     if [[ -z "$url" ]]; then
         log_error "URL is required"
         print_usage
         exit 1
     fi
-    
+
     # Validate URL format
     if [[ ! "$url" =~ ^https?:// ]]; then
         log_error "URL must start with http:// or https://"
         exit 1
     fi
-    
+
     # Scrape the job posting
     scrape_job_posting "$url" "$company" "$role" "$output_file"
 }

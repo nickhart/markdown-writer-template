@@ -28,9 +28,11 @@ temp_dir=$(setup_temp_dir)
     cd "$temp_dir"
     
     # Create necessary directory structure
-    mkdir -p templates/resumes applications/active
+    mkdir -p templates/resumes applications/active scripts
     cp "$PROJECT_ROOT/templates/resumes/general.md" "templates/resumes/"
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     source "$PROJECT_ROOT/scripts/job-apply.sh"
     
@@ -88,9 +90,11 @@ setup_mocks
     cd "$temp_dir"
     
     # Create necessary templates and config
-    mkdir -p templates/resumes templates applications/active
+    mkdir -p templates/resumes templates applications/active scripts
     cp "$PROJECT_ROOT/templates/resumes/general.md" "templates/resumes/"
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     # Create basic config
     cat > ".writer-config.yml" << EOF
@@ -133,7 +137,7 @@ temp_dir=$(setup_temp_dir)
 (
     cd "$temp_dir"
     
-    mkdir -p templates/resumes applications/active
+    mkdir -p templates/resumes applications/active scripts
     
     # Create multiple templates
     echo "# General Resume" > "templates/resumes/general.md"
@@ -141,6 +145,8 @@ temp_dir=$(setup_temp_dir)
     echo "# Frontend Resume" > "templates/resumes/frontend.md"
     
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     # Create basic config
     cat > ".writer-config.yml" << EOF
@@ -172,9 +178,11 @@ setup_mocks
 (
     cd "$temp_dir"
     
-    mkdir -p templates/resumes applications/active
+    mkdir -p templates/resumes applications/active scripts
     cp "$PROJECT_ROOT/templates/resumes/general.md" "templates/resumes/"
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     # Create basic config
     cat > ".writer-config.yml" << EOF
@@ -225,9 +233,11 @@ temp_dir=$(setup_temp_dir)
 (
     cd "$temp_dir"
     
-    mkdir -p templates/resumes applications/active
+    mkdir -p templates/resumes applications/active scripts
     cp "$PROJECT_ROOT/templates/resumes/general.md" "templates/resumes/"
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     output=$(capture_output "$PROJECT_ROOT/scripts/job-apply.sh -c TestCorp -r Developer -t nonexistent 2>&1")
     
@@ -266,9 +276,11 @@ setup_mocks
 (
     cd "$temp_dir"
     
-    mkdir -p templates/resumes applications/active
+    mkdir -p templates/resumes applications/active scripts
     cp "$PROJECT_ROOT/templates/resumes/general.md" "templates/resumes/"
     cp "$PROJECT_ROOT/templates/default_cover_letter.md" "templates/"
+    cp "$PROJECT_ROOT/scripts/format.sh" "scripts/"
+    chmod +x scripts/format.sh
     
     "$PROJECT_ROOT/scripts/job-apply.sh" -c "TestCorp" -r "Developer" -t "general" -u "https://example.com/job" >/dev/null 2>&1
     

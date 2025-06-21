@@ -309,42 +309,25 @@ EOF
     app_dirs=(applications/active/techcorp_senior_developer*)
     if [[ -d "${app_dirs[0]}" ]]; then
         app_name=$(basename "${app_dirs[0]}")
-        echo "Debug: Moving application: $app_name" >&2
-        ./scripts/job-log.sh move "$app_name" submitted >/dev/null 2>&1 || echo "Debug: Move failed" >&2
-    else
-        echo "Debug: No application directory found to move" >&2
+        ./scripts/job-log.sh move "$app_name" submitted >/dev/null 2>&1
     fi
     
     # Verify complete workflow
     workflow_success=true
     
     # Check job posting was scraped
-    echo "Debug: Checking for scraped job postings..." >&2
     if ! ls job_postings/formatted/techcorp_senior_developer_*.* 1> /dev/null 2>&1; then
-        echo "Debug: No scraped job postings found" >&2
-        ls -la job_postings/formatted/ >&2 2>/dev/null || echo "Debug: No job_postings/formatted directory" >&2
         workflow_success=false
-    else
-        echo "Debug: Found scraped job postings" >&2
-        ls job_postings/formatted/techcorp_senior_developer_*.* >&2
     fi
     
     # Check application was created and moved
-    echo "Debug: Checking for moved application..." >&2
     moved_apps=(applications/submitted/techcorp_senior_developer*)
     if [[ ! -d "${moved_apps[0]}" ]]; then
-        echo "Debug: No moved application found" >&2
-        ls -la applications/submitted/ >&2 2>/dev/null || echo "Debug: No submitted directory" >&2
-        ls -la applications/active/ >&2 2>/dev/null || echo "Debug: No active directory" >&2
         workflow_success=false
-    else
-        echo "Debug: Found moved application: ${moved_apps[0]}" >&2
     fi
     
     # Check status command worked
-    echo "Debug: Status output: $status_output" >&2
     if [[ "$status_output" == "failed" ]]; then
-        echo "Debug: Status command failed" >&2
         workflow_success=false
     fi
     
