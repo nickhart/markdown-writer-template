@@ -70,28 +70,48 @@ archive_job_posting() {
         done
     fi
 
-    if [[ -z "$chrome_path" ]]; then
-        log_error "Chrome not found. Please install Chrome or update the chrome_path in .writer-config.yml"
+    # Try Chrome first if available
+    if [[ -n "$chrome_path" ]] && [[ -x "$chrome_path" ]]; then
+        log_info "Using Chrome for archiving..."
+        # UTF-8 BOM + Chrome dump = perfect encoding
+        {
+            printf '\xEF\xBB\xBF'  # UTF-8 BOM
+            "$chrome_path" \
+                --headless \
+                --disable-gpu \
+                --dump-dom \
+                --virtual-time-budget=5000 \
+                "$url"
+        } > "$filename"
+        log_success "Clean UTF-8 HTML saved to $filename (via Chrome)"
+        return 0
+    fi
+
+    # Fallback to curl with UTF-8 support
+    log_warning "Chrome not available, falling back to curl..."
+    
+    if ! command_exists curl; then
+        log_error "Neither Chrome nor curl is available for downloading job postings"
         return 1
     fi
 
-    if [[ ! -x "$chrome_path" ]]; then
-        log_error "Chrome executable not found at: $chrome_path"
-        return 1
-    fi
-
-    # UTF-8 BOM + Chrome dump = perfect encoding
+    # Download with curl and UTF-8 handling
     {
         printf '\xEF\xBB\xBF'  # UTF-8 BOM
-        "$chrome_path" \
-            --headless \
-            --disable-gpu \
-            --dump-dom \
-            --virtual-time-budget=5000 \
+        curl -L -s \
+            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            -H "Accept-Charset: utf-8" \
             "$url"
     } > "$filename"
 
-    log_success "Clean UTF-8 HTML saved to $filename"
+    if [[ -s "$filename" ]]; then
+        log_success "UTF-8 HTML saved to $filename (via curl)"
+        return 0
+    else
+        log_error "Failed to download job posting with curl"
+        return 1
+    fi
 }
 
 # Download and convert job posting
@@ -275,18 +295,18 @@ Examples:
     $0 --list
 
 Features:
-    - Downloads HTML content with proper user agent
+    - Downloads HTML content with proper UTF-8 encoding
     - Auto-detects company name from URL
     - Creates readable text version when possible
     - Extracts key information (requirements, salary, location)
     - Generates summary files
     - Saves to job_postings/formatted/ directory
 
-Supported Conversion Tools:
-    1. pandoc (backup option) - install with: brew install pandoc
-    2. HTML + text fallback if PDF conversion fails
+Supported Download Methods:
+    1. Google Chrome (preferred) - handles modern HTML/CSS and JavaScript
+    2. curl (fallback) - reliable HTTP downloads with UTF-8 support
 
-Note: For best results, install Google Chrome which handles modern HTML/CSS and archives html as a single file.
+Note: For best results, install Google Chrome which renders dynamic content and handles modern websites better than curl.
 
 Output Files:
     company_role_date.pdf     # Main PDF file

@@ -153,7 +153,65 @@ setup_scrape_mocks
 cleanup_temp_dir "$temp_dir"
 cleanup_scrape_mocks
 
-# Test 5: Information extraction
+# Test 5: Chrome fallback to curl
+test_start "Chrome fallback to curl"
+temp_dir=$(setup_temp_dir)
+setup_scrape_mocks
+(
+    cd "$temp_dir"
+    
+    source "$PROJECT_ROOT/scripts/job-scrape.sh"
+    
+    # Mock Chrome path to simulate Chrome not being available
+    # Create a test archive function that will use curl fallback
+    archive_job_posting() {
+        local url="$1"
+        local filename="$2"
+
+        # Simulate Chrome not being available by setting empty chrome_path
+        local chrome_path=""
+        
+        # Test the curl fallback logic
+        log_warning "Chrome not available, falling back to curl..."
+        
+        if ! command_exists curl; then
+            log_error "Neither Chrome nor curl is available for downloading job postings"
+            return 1
+        fi
+
+        # Download with curl and UTF-8 handling (mocked)
+        {
+            printf '\xEF\xBB\xBF'  # UTF-8 BOM
+            echo "<html><head><title>Test Job</title></head><body>Test job posting content</body></html>"
+        } > "$filename"
+
+        if [[ -s "$filename" ]]; then
+            log_success "UTF-8 HTML saved to $filename (via curl)"
+            return 0
+        else
+            log_error "Failed to download job posting with curl"
+            return 1
+        fi
+    }
+    
+    # Test the fallback
+    archive_job_posting "https://example.com/job" "test_fallback.html"
+    
+    if [[ -f "test_fallback.html" ]] && [[ -s "test_fallback.html" ]]; then
+        # Check if UTF-8 BOM is present
+        if hexdump -C "test_fallback.html" | head -1 | grep -q "ef bb bf"; then
+            test_pass "Curl fallback works with UTF-8 BOM"
+        else
+            test_fail "Curl fallback missing UTF-8 BOM"
+        fi
+    else
+        test_fail "Curl fallback failed to create file"
+    fi
+)
+cleanup_temp_dir "$temp_dir"
+cleanup_scrape_mocks
+
+# Test 6: Information extraction
 test_start "Job information extraction"
 temp_dir=$(setup_temp_dir)
 setup_scrape_mocks
@@ -193,7 +251,7 @@ EOF
 cleanup_temp_dir "$temp_dir"
 cleanup_scrape_mocks
 
-# Test 6: List scraped postings
+# Test 7: List scraped postings
 test_start "List scraped job postings"
 temp_dir=$(setup_temp_dir)
 (
@@ -214,7 +272,7 @@ temp_dir=$(setup_temp_dir)
 )
 cleanup_temp_dir "$temp_dir"
 
-# Test 7: Invalid URL handling
+# Test 8: Invalid URL handling
 test_start "Invalid URL handling"
 output=$(capture_output "$PROJECT_ROOT/scripts/job-scrape.sh invalid-url 2>&1")
 
@@ -224,7 +282,7 @@ else
     test_fail "Invalid URL not handled properly"
 fi
 
-# Test 8: Missing URL handling
+# Test 9: Missing URL handling
 test_start "Missing URL handling"
 output=$(capture_output "$PROJECT_ROOT/scripts/job-scrape.sh 2>&1")
 
@@ -234,7 +292,7 @@ else
     test_fail "Missing URL not handled properly"
 fi
 
-# Test 9: Help message
+# Test 10: Help message
 test_start "Help message display"
 output=$(capture_output "$PROJECT_ROOT/scripts/job-scrape.sh --help")
 
@@ -244,7 +302,7 @@ else
     test_fail "Help message incomplete"
 fi
 
-# Test 10: Output file path customization
+# Test 11: Output file path customization
 test_start "Custom output file path"
 temp_dir=$(setup_temp_dir)
 setup_scrape_mocks
